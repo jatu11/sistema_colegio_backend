@@ -14,6 +14,8 @@ export class Curso {
   @Column({ nullable: true })
   especialidad!: string; // Ej: "Informática" o nulo si es ciclo básico
 
-  @Column()
-  paralelo!: string; // Ej: "A", "B", "Alfa"
+
+  // 👇 Nueva columna para la gestión de horarios
+  @Column({ type: 'int', default: 0 })
+  horas_semanales!: number;
 }
