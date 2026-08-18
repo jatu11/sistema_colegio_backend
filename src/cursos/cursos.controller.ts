@@ -40,4 +40,10 @@ export class CursosController {
   remove(@Param('id') id: string) {
     return this.cursosService.remove(+id);
   }
+
+  // 👇 Nueva ruta para autogenerar la malla
+  @Post('autogenerar-soporte')
+  autoGenerar() {
+    return this.cursosService.autoGenerarSoporteInformatico();
+  }
 }
