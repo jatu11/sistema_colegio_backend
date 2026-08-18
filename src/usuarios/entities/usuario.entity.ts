@@ -1,12 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
-// Definimos los roles exactos permitidos en el sistema
+// Evolucionamos los roles para soportar la jerarquía
 export enum RolUsuario {
-  ADMIN = 'ADMIN',
+  ADMIN = 'ADMIN', // Rol maestro para ti (Sistemas)
+  ADMINISTRACION = 'ADMINISTRACION', // Agrupa a Rector, Vicerrector, Secretaria
   DOCENTE = 'DOCENTE',
-  CADETE = 'CADETE',
   INSPECTOR = 'INSPECTOR',
-  SECRETARIA = 'SECRETARIA',
+  CADETE = 'CADETE',
 }
 
 @Entity('usuarios') // Nombre de la tabla en Supabase
@@ -15,7 +20,7 @@ export class Usuario {
   id!: string;
 
   @Column({ unique: true })
-  cedula!: string; // Mejor identificador que el email para instituciones
+  cedula!: string;
 
   @Column()
   nombres!: string;
@@ -23,8 +28,11 @@ export class Usuario {
   @Column()
   apellidos!: string;
 
+  @Column({ unique: true, nullable: true })
+  correo_institucional!: string;
+
   @Column()
-  passwordHash!: string; // Aquí guardaremos la contraseña encriptada más adelante
+  passwordHash!: string;
 
   @Column({
     type: 'enum',
@@ -33,8 +41,16 @@ export class Usuario {
   })
   rol!: RolUsuario;
 
+  // 👇 NUEVOS CAMPOS DE JERARQUÍA
+
+  @Column({ nullable: true })
+  cargo!: string; // Ej: 'Rector', 'Vicerrector', 'Secretaria', 'Inspector General'
+
+  @Column({ nullable: true })
+  area_academica!: string; // Ej: 'Informática', 'Matemática' (Solo se llena si es DOCENTE)
+
   @Column({ default: true })
-  activo!: boolean; // Para suspender cuentas sin borrarlas
+  activo!: boolean;
 
   @CreateDateColumn()
   fechaCreacion!: Date;

@@ -1,9 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario, RolUsuario } from 'src/usuarios/entities/usuario.entity';
 import * as bcrypt from 'bcrypt';
-
 
 @Injectable()
 export class UsuariosService {
@@ -36,5 +40,113 @@ export class UsuariosService {
     });
 
     return this.usuarioRepository.save(nuevoAdmin);
+  }
+
+  // 🚀 LÓGICA DE GENERACIÓN DE CORREO
+  async generarCorreoInstitucional(
+    nombres: string,
+    apellidos: string,
+  ): Promise<string> {
+    const dominio = '@jatudev.com';
+
+    // 1. Limpiar tildes, eñes y convertir a minúsculas
+    const limpiarTexto = (texto: string) =>
+      texto
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ñ/g, 'n')
+        .toLowerCase()
+        .trim();
+
+    const nombresLimpios = limpiarTexto(nombres).split(' ');
+    const apellidosLimpios = limpiarTexto(apellidos).split(' ');
+
+    const primerNombre = nombresLimpios[0];
+    const primerApellido = apellidosLimpios[0];
+    // Por si acaso tiene un solo apellido registrado
+    const segundoApellido =
+      apellidosLimpios.length > 1 ? apellidosLimpios[1] : '';
+
+    // 2. Intento 1: Primera letra del nombre + Primer apellido completo
+    let correoPropuesto = `${primerNombre.charAt(0)}${primerApellido}${dominio}`;
+    let existe = await this.usuarioRepository.findOne({
+      where: { correo_institucional: correoPropuesto },
+    });
+
+    if (!existe) return correoPropuesto;
+
+    // 3. Intento 2 (Coincidencia): Primera letra nombre + Primer apellido + Primera letra segundo apellido
+    const letraSegundoApellido = segundoApellido
+      ? segundoApellido.charAt(0)
+      : 'x';
+    correoPropuesto = `${primerNombre.charAt(0)}${primerApellido}${letraSegundoApellido}${dominio}`;
+    existe = await this.usuarioRepository.findOne({
+      where: { correo_institucional: correoPropuesto },
+    });
+
+    if (!existe) return correoPropuesto;
+
+    // 4. Intento 3 (Red de seguridad): Si increíblemente Juan Perez Sanchez y Jose Perez Silva entraron al sistema...
+    // agregamos un número al final para no romper la base de datos.
+    let contador = 1;
+    let correoSeguro = `${primerNombre.charAt(0)}${primerApellido}${letraSegundoApellido}${contador}${dominio}`;
+
+    while (
+      await this.usuarioRepository.findOne({
+        where: { correo_institucional: correoSeguro },
+      })
+    ) {
+      contador++;
+      correoSeguro = `${primerNombre.charAt(0)}${primerApellido}${letraSegundoApellido}${contador}${dominio}`;
+    }
+
+    return correoSeguro;
+  }
+
+  // 👇 2. EL NUEVO MÉTODO DE REGISTRO
+  async create(createUsuarioDto: any) {
+    // A. Verificamos que la cédula no exista para evitar errores SQL feos
+    const existeCedula = await this.usuarioRepository.findOne({
+      where: { cedula: createUsuarioDto.cedula },
+    });
+    if (existeCedula) {
+      throw new ConflictException(
+        'Esta cédula ya se encuentra registrada en el sistema.',
+      );
+    }
+
+    // B. Generamos el correo institucional mágicamente
+    const correoGenerado = await this.generarCorreoInstitucional(
+      createUsuarioDto.nombres,
+      createUsuarioDto.apellidos,
+    );
+
+    // C. Encriptamos la contraseña (Por defecto será su cédula si no envían una)
+    const passwordPlana = createUsuarioDto.password || createUsuarioDto.cedula;
+    const saltos = 10;
+    const passwordHash = await bcrypt.hash(passwordPlana, saltos);
+
+    // D. Preparamos el objeto final
+    const nuevoUsuario = this.usuarioRepository.create({
+      ...createUsuarioDto,
+      correo_institucional: correoGenerado,
+      passwordHash: passwordHash,
+    });
+
+    try {
+      // E. Guardamos en Base de Datos
+      const usuarioGuardado: any = await this.usuarioRepository.save(nuevoUsuario);
+
+      // F. Retornamos la info, pero ELIMINAMOS el passwordHash por seguridad (para que no viaje al frontend)
+      const { passwordHash: _, ...usuarioSinPassword } = usuarioGuardado;
+      return {
+        mensaje: 'Usuario registrado con éxito',
+        usuario: usuarioSinPassword,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al registrar el usuario en la base de datos.',
+      );
+    }
   }
 }
