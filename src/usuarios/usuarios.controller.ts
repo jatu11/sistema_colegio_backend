@@ -6,7 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -21,11 +21,17 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
-  // Ruta POST /usuarios/setup
-  /* @Post('setup')
-  crearPrimerAdmin(@Body() body: any) {
-    return this.usuariosService.crearAdminInicial(body);
-  } */
+  //Ruta temporal de configuración inicial
+  @Get('setup-cargos')
+  inicializarSistema() {
+    return this.usuariosService.inicializarCargosYPermisos();
+  }
+
+  //Ruta temporal para ascender tu cuenta
+  @Get('ascender/:cedula')
+  ascenderUsuario(@Param('cedula') cedula: string) {
+    return this.usuariosService.darPoderesAdmin(cedula);
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard) // 1. Exige Token, 2. Exige el Rol
   @Roles('ADMIN')

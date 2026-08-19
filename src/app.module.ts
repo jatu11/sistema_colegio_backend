@@ -9,6 +9,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { CursosModule } from './cursos/cursos.module';
 import { HorariosModule } from './horarios/horarios.module';
+import { PermisosModule } from './permisos/permisos.module';
+import { CargosModule } from './cargos/cargos.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { HorariosModule } from './horarios/horarios.module';
     CursosModule,
     HorariosModule,
     AuthModule,
+    PermisosModule,
+    CargosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

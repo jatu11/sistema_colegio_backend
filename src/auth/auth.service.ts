@@ -33,12 +33,17 @@ export class AuthService {
       throw new UnauthorizedException('Este usuario se encuentra inactivo');
     }
 
-    // 4. Armamos el paquete de información que vivirá dentro del Token
+    // 4. Extraemos los permisos del cargo (el '?' evita errores si aún no tiene cargo asignado)
+    const listaPermisos =
+      usuario.cargo?.permisos?.map((permiso) => permiso.nombre) || [];
+
+    // 5. Armamos el paquete de información que vivirá dentro del Token
     const payload = {
       sub: usuario.id,
       cedula: usuario.cedula,
-      rol: usuario.rol, // CRÍTICO PARA EL DASHBOARD Y LOS GUARDS
-      nombres: usuario.nombres, // CRÍTICO PARA EL MENSAJE DE BIENVENIDA
+      rol: usuario.rol,
+      permisos: listaPermisos, // 👈 ¡LA MAGIA! Aquí inyectamos sus poderes ('matricular:estudiantes', etc)
+      nombres: usuario.nombres,
       apellidos: usuario.apellidos,
     };
 

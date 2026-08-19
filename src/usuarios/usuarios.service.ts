@@ -8,17 +8,30 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario, RolUsuario } from 'src/usuarios/entities/usuario.entity';
 import * as bcrypt from 'bcrypt';
+import { EntityManager } from 'typeorm';
+import { Cargo } from 'src/cargos/entities/cargo.entity';
+import { Permiso } from 'src/permisos/entities/permiso.entity';
 
 @Injectable()
 export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    //Agregamos el gestor de entidades
+    private entityManager: EntityManager,
   ) {}
 
   // Busca un usuario exacto por su cédula para el login
   async buscarPorCedula(cedula: string) {
-    return this.usuarioRepository.findOne({ where: { cedula } });
+    return await this.usuarioRepository.findOne({
+      where: { cedula },
+      // 👇 Sintaxis moderna de TypeORM 0.3+
+      relations: {
+        cargo: {
+          permisos: true,
+        },
+      },
+    });
   }
 
   // Método especial para crear el primer administrador del sistema
@@ -135,7 +148,8 @@ export class UsuariosService {
 
     try {
       // E. Guardamos en Base de Datos
-      const usuarioGuardado: any = await this.usuarioRepository.save(nuevoUsuario);
+      const usuarioGuardado: any =
+        await this.usuarioRepository.save(nuevoUsuario);
 
       // F. Retornamos la info, pero ELIMINAMOS el passwordHash por seguridad (para que no viaje al frontend)
       const { passwordHash: _, ...usuarioSinPassword } = usuarioGuardado;
@@ -148,5 +162,88 @@ export class UsuariosService {
         'Error al registrar el usuario en la base de datos.',
       );
     }
+  }
+
+  // Ejecutar esto UNA SOLA VEZ para configurar el sistema
+  async inicializarCargosYPermisos() {
+    // 1. Creamos los Permisos Base
+    const permMatricular = this.entityManager.create(Permiso, {
+      nombre: 'matricular:estudiantes',
+      descripcion: 'Matricular en periodo lectivo',
+    });
+    const permVerGlobal = this.entityManager.create(Permiso, {
+      nombre: 'ver:global',
+      descripcion: 'Ver todo el personal y cadetes',
+    });
+    const permUsuarios = this.entityManager.create(Permiso, {
+      nombre: 'gestionar:usuarios',
+      descripcion: 'Control total de usuarios',
+    });
+    const permNovedades = this.entityManager.create(Permiso, {
+      nombre: 'gestionar:novedades',
+      descripcion: 'Crear y editar novedades disciplinarias',
+    });
+
+    // Guardamos los permisos en la base de datos
+    await this.entityManager.save([
+      permMatricular,
+      permVerGlobal,
+      permUsuarios,
+      permNovedades,
+    ]);
+
+    // 2. Creamos los Cargos Institucionales y les asignamos sus poderes
+    const cargoAdmin = this.entityManager.create(Cargo, {
+      nombre: 'Administrador',
+      permisos: [permUsuarios, permVerGlobal, permMatricular, permNovedades],
+    });
+
+    const cargoRector = this.entityManager.create(Cargo, {
+      nombre: 'Rector',
+      permisos: [permVerGlobal],
+    });
+
+    const cargoSecretaria = this.entityManager.create(Cargo, {
+      nombre: 'Secretaria',
+      permisos: [permMatricular, permVerGlobal],
+    });
+
+    const cargoDocente = this.entityManager.create(Cargo, {
+      nombre: 'Docente',
+      permisos: [permNovedades],
+    });
+
+    // Guardamos los cargos en la base de datos
+    await this.entityManager.save([
+      cargoAdmin,
+      cargoRector,
+      cargoSecretaria,
+      cargoDocente,
+    ]);
+
+    return {
+      mensaje: '¡Operación Exitosa! Cargos y Permisos institucionales creados.',
+    };
+  }
+
+  // 👇 Atajo temporal para ascender a tu usuario principal
+  async darPoderesAdmin(cedula: string) {
+    // Buscamos a tu usuario
+    const usuario = await this.usuarioRepository.findOne({ where: { cedula } });
+
+    // Buscamos el cargo de Administrador (asumiendo que fue el primero en crearse y su ID es 1)
+    const cargoAdmin = await this.entityManager.findOne(Cargo, {
+      where: { nombre: 'Administrador' },
+    });
+
+    if (usuario && cargoAdmin) {
+      usuario.cargo = cargoAdmin;
+      await this.usuarioRepository.save(usuario);
+      return {
+        mensaje: `¡Listo! El usuario ${usuario.nombres} ahora es Administrador Supremo.`,
+      };
+    }
+
+    return { mensaje: 'Error: No se encontró el usuario o el cargo.' };
   }
 }

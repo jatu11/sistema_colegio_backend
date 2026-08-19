@@ -3,7 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Cargo } from 'src/cargos/entities/cargo.entity';
 
 // Evolucionamos los roles para soportar la jerarquía
 export enum RolUsuario {
@@ -43,8 +46,9 @@ export class Usuario {
 
   // 👇 NUEVOS CAMPOS DE JERARQUÍA
 
-  @Column({ nullable: true })
-  cargo!: string; // Ej: 'Rector', 'Vicerrector', 'Secretaria', 'Inspector General'
+  @ManyToOne(() => Cargo)
+  @JoinColumn({ name: 'cargo_id' })
+  cargo!: Cargo;
 
   @Column({ nullable: true })
   area_academica!: string; // Ej: 'Informática', 'Matemática' (Solo se llena si es DOCENTE)
