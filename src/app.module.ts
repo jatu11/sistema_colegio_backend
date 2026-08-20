@@ -11,6 +11,7 @@ import { CursosModule } from './cursos/cursos.module';
 import { HorariosModule } from './horarios/horarios.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { CargosModule } from './cargos/cargos.module';
+import { EstudiantesModule } from './estudiantes/estudiantes.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CargosModule } from './cargos/cargos.module';
     AuthModule,
     PermisosModule,
     CargosModule,
+    EstudiantesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

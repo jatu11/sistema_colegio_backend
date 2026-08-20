@@ -17,6 +17,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   // Si el token es real y no ha expirado, esta función extrae quién es el usuario
   async validate(payload: any) {
-    return { id: payload.sub, rol: payload.rol };
+    return {
+      id: payload.sub,
+      rol: payload.rol,
+      permisos: payload.permisos, //LA PIEZA FALTANTE
+    };
   }
 }

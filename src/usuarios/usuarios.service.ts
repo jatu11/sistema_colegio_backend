@@ -165,7 +165,7 @@ export class UsuariosService {
   }
 
   // Ejecutar esto UNA SOLA VEZ para configurar el sistema
-  async inicializarCargosYPermisos() {
+  /* async inicializarCargosYPermisos() {
     // 1. Creamos los Permisos Base
     const permMatricular = this.entityManager.create(Permiso, {
       nombre: 'matricular:estudiantes',
@@ -224,10 +224,10 @@ export class UsuariosService {
     return {
       mensaje: '¡Operación Exitosa! Cargos y Permisos institucionales creados.',
     };
-  }
+  } */
 
-  // 👇 Atajo temporal para ascender a tu usuario principal
-  async darPoderesAdmin(cedula: string) {
+  // Atajo temporal para ascender a tu usuario principal
+  /* async darPoderesAdmin(cedula: string) {
     // Buscamos a tu usuario
     const usuario = await this.usuarioRepository.findOne({ where: { cedula } });
 
@@ -245,5 +245,5 @@ export class UsuariosService {
     }
 
     return { mensaje: 'Error: No se encontró el usuario o el cargo.' };
-  }
+  } */
 }

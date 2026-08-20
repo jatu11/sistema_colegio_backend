@@ -22,16 +22,16 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   //Ruta temporal de configuración inicial
-  @Get('setup-cargos')
+ /*  @Get('setup-cargos')
   inicializarSistema() {
     return this.usuariosService.inicializarCargosYPermisos();
-  }
+  } */
 
   //Ruta temporal para ascender tu cuenta
-  @Get('ascender/:cedula')
+  /* @Get('ascender/:cedula')
   ascenderUsuario(@Param('cedula') cedula: string) {
     return this.usuariosService.darPoderesAdmin(cedula);
-  }
+  } */
 
   @UseGuards(JwtAuthGuard, RolesGuard) // 1. Exige Token, 2. Exige el Rol
   @Roles('ADMIN')
